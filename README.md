@@ -6,70 +6,42 @@
   </picture>
 </p>
 
+Self-hosted platform that lets users deploy applications and databases to their **own AWS accounts** in a scaleable way using **the power of kubernetes**. It gives you full control over your own deployments.
+---
 
-### 1. Install Datafruit
+![Deployed](docs/assets/deployed.png)
 
-```bash
-pip install datafruit
-```
+## 🚀 What It Does
 
-### 2. Define Your Data Models
+- **Own Your Infrastructure**: Every project runs on its own EKS cluster in the user’s AWS account.
+- **One-Click Deployments**: Connect a GitHub repo, and Datafruit handles the rest — build, push, and deploy.
+- **PostgreSQL-as-a-Service**: Users can provision and manage databases as first-class resources.
+- **Managed Kubernetes**: Apps and databases are deployed as Kubernetes services on EKS.
+- **Internal Control Plane**: Tracks all builds, clusters, apps, and databases for easy management.
 
-In your Python code, import Datafruit. Declare models as classes:
+---
 
-```python
-import datafruit as dft
-from datafruit import Table, Field
-import os
-from dotenv import load_dotenv
-from typing import Optional
-from datetime import datetime
-load_dotenv()
+## ⚙️ How It Works
 
-class users(Table, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    username: str = Field(unique=True)
-    email: str = Field(unique=True)
-    full_name: Optional[str] = None
-    is_active: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+1. **Connect GitHub Repo**: Provide a repository URL.
+2. **Smart Build Plan**: Datafruit analyzes the codebase with `railpack`.
+3. **Docker Build & Push**: Image is built with Docker Buildx and pushed to the user's ECR.
+4. **Kubernetes Deploy**: The app and any requested databases are deployed on EKS.
+5. **Dashboard & API**: Track deployments and infrastructure status from the UI or API.
 
-class posts(Table, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    title: str = Field(index=True)
-    content: str
-    published: bool = Field(default=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: Optional[datetime] = None
+---
 
-db = dft.PostgresDB(
-    os.getenv("PG_DB_URL") or "",
-    [users, posts]
-)
+## 🧩 Why Use Datafruit?
 
-dft.export([db])
-```
+- Full AWS ownership
+- Per-project isolation via dedicated EKS clusters
+- No vendor lock-in
+- GitHub to production in minutes
 
-### 3. Inspect Schema Changes
+---
 
-Use the `plan` command to see pending migrations:
+## 🛠 Status
 
-```bash
-dft plan
-```
+> This project is actively developed and not yet production-ready. Contributions welcome!
 
-This prints a diff of tables/columns to be added, removed, or modified.
-
-### 4. Apply Migrations
-
-When you’re ready, apply changes to your database:
-
-```bash
-dft apply
-```
-
-Under the hood, Datafruit generates and runs Alembic migration scripts for you.
-
-
-You now have a working Datafruit setup: define models in code, preview changes, and apply migrations seamlessly. For more details, see the full documentation.
-
+![Projects](docs/assets/projects.png)
