@@ -1,0 +1,148 @@
+---
+title: Ghostship API
+description: API reference for deploying and managing Kubernetes apps using Ghostship.
+---
+
+# Ghostship API
+
+Ghostship allows you to deploy, manage, and monitor applications directly from GitHub into your Kubernetes cluster. Each request must be authenticated using an API key and project ID.
+
+---
+
+## Authentication
+
+All endpoints require:
+
+- `api_key` – your API access key
+- `project_id` – your UUID identifying the active project
+
+If either is invalid or missing, you'll receive a `401 Unauthorized` error.
+
+---
+
+## 📦 Create and Deploy App
+
+Deploy a GitHub project as a Kubernetes app.
+
+### Endpoint
+
+```http
+POST /create_and_deploy_app_api
+````
+
+### Description
+
+Initiates a background deployment using the specified GitHub repository and command.
+
+### Request Body
+
+```json
+{
+  "api_key": "string",
+  "project_id": "string (UUID)",
+  "name": "string",
+  "github_token": "string",
+  "repo_url": "string",
+  "repo_branch": "string",
+  "start_command": "string"
+}
+```
+
+### Response
+
+```json
+{
+  "message": "Deployment initiated"
+}
+```
+
+### Errors
+
+* `400 Bad Request` – Invalid GitHub URL/token or project inactive
+* `500 Internal Server Error` – Deployment error
+
+---
+
+## 🗑️ Delete App
+
+Delete a deployed application.
+
+### Endpoint
+
+```http
+POST /delete_app_api
+```
+
+### Description
+
+Initiates a background task to delete the specified application from the cluster.
+
+### Request Body
+
+```json
+{
+  "api_key": "string",
+  "project_id": "string (UUID)",
+  "name": "string"
+}
+```
+
+### Response
+
+```json
+{
+  "message": "Deletion initiated"
+}
+```
+
+### Notes
+
+* This operation is asynchronous.
+* The endpoint **does not** wait for confirmation of deletion.
+* Check the status afterward using `/get_app_status_api`.
+
+### Errors
+
+* `401 Unauthorized` – Invalid API key
+* `500 Internal Server Error` – Deletion error
+
+---
+
+## 📊 Get App Status
+
+Check the deployment status of an app.
+
+### Endpoint
+
+```http
+POST /get_app_status_api
+```
+
+### Description
+
+Returns the current deployment status and service URL (if active).
+
+### Request Body
+
+```json
+{
+  "api_key": "string",
+  "project_id": "string (UUID)",
+  "name": "string"
+}
+```
+
+### Response
+
+```json
+[
+  "active" | "creating" | "failed" | "not_created",
+  "string | null" // service_url
+]
+```
+
+### Errors
+
+* `401 Unauthorized` – Invalid API key
+
+---
