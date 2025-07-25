@@ -1,11 +1,8 @@
 ---
-title: Ghostship API
-description: API reference for deploying and managing Kubernetes apps using Ghostship.
+title: "Datafruit API"
+description: "Ghostship allows you to deploy, manage, and monitor applications directly from GitHub into your Kubernetes cluster. Each request must be authenticated using an API key and project ID"
 ---
 
-# Ghostship API
-
-Ghostship allows you to deploy, manage, and monitor applications directly from GitHub into your Kubernetes cluster. Each request must be authenticated using an API key and project ID.
 
 ---
 
@@ -28,7 +25,7 @@ Deploy a GitHub project as a Kubernetes app.
 
 ```http
 POST /create_and_deploy_app_api
-````
+```
 
 ### Description
 
@@ -58,8 +55,8 @@ Initiates a background deployment using the specified GitHub repository and comm
 
 ### Errors
 
-* `400 Bad Request` – Invalid GitHub URL/token or project inactive
-* `500 Internal Server Error` – Deployment error
+- `400 Bad Request` – Invalid GitHub URL/token or project inactive
+- `500 Internal Server Error` – Deployment error
 
 ---
 
@@ -97,14 +94,14 @@ Initiates a background task to delete the specified application from the cluster
 
 ### Notes
 
-* This operation is asynchronous.
-* The endpoint **does not** wait for confirmation of deletion.
-* Check the status afterward using `/get_app_status_api`.
+- This operation is asynchronous.
+- The endpoint **does not** wait for confirmation of deletion.
+- Check the status afterward using `/get_app_status_api`.
 
 ### Errors
 
-* `401 Unauthorized` – Invalid API key
-* `500 Internal Server Error` – Deletion error
+- `401 Unauthorized` – Invalid API key
+- `500 Internal Server Error` – Deletion error
 
 ---
 
@@ -143,6 +140,6 @@ Returns the current deployment status and service URL (if active).
 
 ### Errors
 
-* `401 Unauthorized` – Invalid API key
+- `401 Unauthorized` – Invalid API key
 
 ---
