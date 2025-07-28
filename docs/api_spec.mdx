@@ -1,35 +1,36 @@
 ---
-title: "Datafruit API"
-description: "The api allows you to deploy, manage, and monitor applications directly from GitHub into your Kubernetes cluster. Each request must be authenticated using an API key and project ID"
+title: Datafruit API Spec
+description: API reference for deploying and managing Kubernetes apps using Datafruit.
 ---
 
-
----
-
-## Authentication
-
-All endpoints require:
-
-- `api_key` – your API access key
-- `project_id` – your UUID identifying the active project
-
-If either is invalid or missing, you'll receive a `401 Unauthorized` error.
+Datafruit allows you to deploy, manage, and monitor applications directly from GitHub into your Kubernetes cluster. All endpoints require authentication using an `api_key` and `project_id`.
 
 ---
 
-## 📦 Create and Deploy App
+## 🔐 Authentication
 
-Deploy a GitHub project as a Kubernetes app.
+Every endpoint must include:
+
+- `api_key` – your unique API access key
+- `project_id` – UUID identifying the active project
+
+Invalid or missing credentials will return a `401 Unauthorized` error.
+
+---
+
+## 🚀 Create and Deploy App
+
+Deploy an application to your Kubernetes cluster from a GitHub repo.
 
 ### Endpoint
 
 ```http
 POST /create_and_deploy_app_api
-```
+````
 
 ### Description
 
-Initiates a background deployment using the specified GitHub repository and command.
+Creates a Kubernetes app from a GitHub repo. The deployment is asynchronous; use `/get_app_status_api` to monitor progress.
 
 ### Request Body
 
@@ -41,7 +42,7 @@ Initiates a background deployment using the specified GitHub repository and comm
   "github_token": "string",
   "repo_url": "string",
   "repo_branch": "string",
-  "start_command": "string"
+  "start_command": "string (optional)"
 }
 ```
 
@@ -55,14 +56,62 @@ Initiates a background deployment using the specified GitHub repository and comm
 
 ### Errors
 
-- `400 Bad Request` – Invalid GitHub URL/token or project inactive
-- `500 Internal Server Error` – Deployment error
+* `400 Bad Request` – Invalid GitHub URL/token or inactive project
+* `500 Internal Server Error` – Internal deployment error
+
+---
+
+## 📊 Get App Status
+
+Retrieve the deployment and build status of an app.
+
+### Endpoint
+
+```http
+POST /get_app_status_api
+```
+
+### Description
+
+Fetches the status of an app, including:
+
+* app status (`active`, `creating`, `failed`, `not_created`)
+* URL of the live app (if active)
+* build status
+* recent build logs
+* any errors
+
+### Request Body
+
+```json
+{
+  "api_key": "string",
+  "project_id": "string (UUID)",
+  "name": "string"
+}
+```
+
+### Response
+
+```json
+{
+  "app_status": "active" | "creating" | "failed" | "not_created",
+  "service_url": "string | null",
+  "build_status": "string | null",
+  "build_logs": "string | null",
+  "error": "string | null"
+}
+```
+
+### Errors
+
+* `401 Unauthorized` – Invalid API key
 
 ---
 
 ## 🗑️ Delete App
 
-Delete a deployed application.
+Delete an application and clean up its routing configuration.
 
 ### Endpoint
 
@@ -72,7 +121,7 @@ POST /delete_app_api
 
 ### Description
 
-Initiates a background task to delete the specified application from the cluster.
+Asynchronously deletes a deployed app from the cluster and removes associated domain routing (e.g., CNAME records).
 
 ### Request Body
 
@@ -94,52 +143,90 @@ Initiates a background task to delete the specified application from the cluster
 
 ### Notes
 
-- This operation is asynchronous.
-- The endpoint **does not** wait for confirmation of deletion.
-- Check the status afterward using `/get_app_status_api`.
+* This operation runs in the background.
+* Ingress/DNS routes are removed via `remove_app_routes`.
 
 ### Errors
 
-- `401 Unauthorized` – Invalid API key
-- `500 Internal Server Error` – Deletion error
+* `401 Unauthorized` – Invalid API key
+* `500 Internal Server Error` – Deletion failed
 
 ---
 
-## 📊 Get App Status
+# Example
 
-Check the deployment status of an app.
+```python
+import asyncio
+import httpx
+from datetime import datetime
 
-### Endpoint
+# Set these values
+API_BASE_URL = "https://api.datafruit.dev"
+API_KEY = "your-api-key"
+PROJECT_ID = "your-project-id-uuid"
+GITHUB_TOKEN = "your-github-token"
+REPO_URL = "https://github.com/your-org/your-repo"
+BRANCH = "main"
 
-```http
-POST /get_app_status_api
+
+async def create_app(app_name: str):
+    payload = {
+        "api_key": API_KEY,
+        "project_id": PROJECT_ID,
+        "name": app_name,
+        "github_token": GITHUB_TOKEN,
+        "repo_url": REPO_URL,
+        "repo_branch": BRANCH,
+        "start_command": "python app.py"  # optional if already defined in Dockerfile
+    }
+
+    async with httpx.AsyncClient(base_url=API_BASE_URL) as client:
+        response = await client.post("/create_and_deploy_app_api", json=payload)
+        print("Create App Response:", response.status_code, response.text)
+
+
+async def get_status(app_name: str):
+    payload = {
+        "api_key": API_KEY,
+        "project_id": PROJECT_ID,
+        "name": app_name
+    }
+
+    async with httpx.AsyncClient(base_url=API_BASE_URL) as client:
+        response = await client.post("/get_app_status_api", json=payload)
+        print("Status Response:", response.status_code)
+        print(response.json())
+
+
+async def delete_app(app_name: str):
+    payload = {
+        "api_key": API_KEY,
+        "project_id": PROJECT_ID,
+        "name": app_name
+    }
+
+    async with httpx.AsyncClient(base_url=API_BASE_URL) as client:
+        response = await client.post("/delete_app_api", json=payload)
+        print("Delete Response:", response.status_code, response.text)
+
+
+async def main():
+    app_name = f"example-app-{datetime.now().strftime('%H%M%S')}"
+    print(f"Working with app: {app_name}")
+
+    await create_app(app_name)
+    await asyncio.sleep(5)
+
+    print("\nChecking status repeatedly for ~30s...")
+    for _ in range(6):
+        await get_status(app_name)
+        await asyncio.sleep(5)
+
+    print("\nNow deleting the app...")
+    await delete_app(app_name)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-### Description
-
-Returns the current deployment status and service URL (if active).
-
-### Request Body
-
-```json
-{
-  "api_key": "string",
-  "project_id": "string (UUID)",
-  "name": "string"
-}
-```
-
-### Response
-
-```json
-[
-  "active" | "creating" | "failed" | "not_created",
-  "string | null" // service_url
-]
-```
-
-### Errors
-
-- `401 Unauthorized` – Invalid API key
-
----
